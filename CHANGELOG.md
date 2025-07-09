@@ -1,9 +1,13 @@
-# [0.1.0](https://pypi.org/project/kworker) (09.07.2025)
+# [0.1.2](https://pypi.org/project/kworker) (09.07.2025)
 ---
-## [Unreleased]
-### Added
-- Заголовок для будущих изменений
 
+## [0.1.2](https://pypi.org/project/kworker/0.1.2) - 09.07.2025
+### Added
+- Поддержка `async with`
+
+### Fixed
+- Конфигурационные ошибки
+---
 ## [0.1.0](https://pypi.org/project/kworker/0.1.0) - 09.07.2025
 ### Added
 - Первая публикация пакета `kworker` на PyPI
