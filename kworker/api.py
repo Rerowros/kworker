@@ -1,11 +1,11 @@
 import json
 import logging
 import collections
-from typing import Optional, Union, List, Dict
 import aiohttp
+from typing import Optional, Union, List, Dict
 from aiohttp_socks import ProxyConnector
-from .models import Actor, User, DialogMessage, InboxMessage, Category, Connects, WantWorker
-from .exceptions import *
+from models import Actor, User, DialogMessage, InboxMessage, Category, Connects, WantWorker
+from exceptions import *
 
 logger = logging.getLogger(__name__)
 Handler = collections.namedtuple("Handler", ["func", "text", "on_start", "text_contains"])
@@ -25,6 +25,12 @@ class KworkAPI:
         self.password = password
         self._token: Optional[str] = None
         self.phone_last = phone_last
+        
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
 
     def _create_connector(self, proxy: Optional[str]) -> Optional[aiohttp.BaseConnector]:
         """Создает коннектор для прокси"""
@@ -42,21 +48,19 @@ class KworkAPI:
             self._token = await self.get_token()
         return self._token
 
-    async def request(self, method: str, api_method: Optional[str] = None, full_url: Optional[str] = None, **params) -> Union[Dict, List]:
+    async def request(self, method: str, api_method: Optional[str] = None, full_url: Optional[str] = None, timeout: int = 10, **params) -> Union[Dict, List]:
         """Выполняет API запрос с обработкой ошибок
-        
         Args:
             method (str): HTTP метод
             api_method (Optional[str]): Название метода API
-            full_url (Optional[str]): Полный URL для запроса
+            full_url (Optional[str]): Полный URL запроса
             params: Параметры запроса
-            
         Returns:
             JSON ответ запроса
         """
         params = {k: v for k, v in params.items() if v is not None}
         logger.debug(f"Request: {method} {api_method} with params: {params}")
-        
+
         if not (api_method or full_url):
             raise KworkApiException("Необходимо указать api_method или full_url")
 
@@ -64,8 +68,8 @@ class KworkAPI:
         request_info = {"method": method, "url": url, "params": params}
 
         try:
-            async with self.session.request(method=method, url=url, headers={"Authorization": "Basic bW9iaWxlX2FwaTpxRnZmUmw3dw=="}, params=params) as resp:
-                
+            async with self.session.request(method=method, url=url, headers={"Authorization": "Basic bW9iaWxlX2FwaTpxRnZmUmw3dw=="}, params=params, timeout=aiohttp.ClientTimeout(total=timeout)) as resp:
+
                 if resp.content_type != "application/json":
                     error_text = await resp.text()
                     raise KworkApiException(f"Недопустимый формат ответа: {error_text}", request_info=request_info)
@@ -76,18 +80,16 @@ class KworkAPI:
                 if not json_response.get("success"):
                     error_msg = json_response.get("error", "Unknown error")
                     error_code = json_response.get("error_code")
-                    
+
                     exc_params = {"code": error_code, "request_info": request_info}
-                    
+
                     if "limit" in error_msg.lower():
                         raise KworkRateLimitException(error_msg, **exc_params)
                     elif "auth" in error_msg.lower() or "token" in error_msg.lower():
                         raise KworkAuthException(error_msg, **exc_params)
                     else:
                         raise KworkApiException(error_msg, **exc_params)
-                        
                 return json_response
-
         except aiohttp.ClientError as e:
             raise KworkConnectionException(f"Ошибка сети: {str(e)}", request_info=request_info)
         except json.JSONDecodeError as e:
@@ -140,7 +142,6 @@ class KworkAPI:
 
             dialogs.extend(DialogMessage(**dialog) for dialog in dialogs_page["response"])
             page += 1
-
         return dialogs
 
     async def set_offline(self) -> Dict:
@@ -178,7 +179,6 @@ class KworkAPI:
             if page == messages_dict["paging"]["pages"]:
                 break
             page += 1
-
         return dialog
 
     async def get_worker_orders(self) -> Dict:
