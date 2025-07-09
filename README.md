@@ -16,13 +16,16 @@
 ## Начало работы с kworker
 ```python
 import asyncio
-from api import KworkAPI
+from kworker import KworkAPI
 
 async def main():
     try:
         client = KworkAPI(login="example@email.com", password="123456", phone_last='1234')
-        me = await client.get_me()  # Получение информации о себе
+        # Получение информации о себе
+        me = await client.get_me()
         print(f"Авторизован: {me.username} (ID: {me.id})")
+        # Отправка своего запроса
+        await client.request(method="post", api_method="user", id="10101", token=await client.token)
     finally:
         await client.close()
 
