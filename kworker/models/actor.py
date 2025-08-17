@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from .achievement import Achievement
 
 class Actor(BaseModel):
-    id: str = None
+    id: str | int = None  # Исправлено: теперь id поддерживает как str, так и int для совместимости с ответами API (pydantic v2 строгая типизация)
     username: str = None
     status: str = None
     email: str = None

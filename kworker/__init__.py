@@ -1,3 +1,3 @@
-from api import KworkAPI
+from .api import KworkAPI
 
 __all__ = ['KworkAPI']
